@@ -23,7 +23,7 @@ targets:
         excludes:
           - Package.swift
           - .swiftpm
-      - AppAssets
+      - AppAssets/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ariberkowitz.duobreakout
