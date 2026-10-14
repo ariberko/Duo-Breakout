@@ -92,6 +92,8 @@ jobs:
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             > "$RUNNER_TEMP/archive.log" 2>&1 || { ./scripts/report-errors.sh "$RUNNER_TEMP/archive.log"; exit 1; }
           tail -n 100 "$RUNNER_TEMP/archive.log"
+          find "$RUNNER_TEMP/DuoBreakout.xcarchive" -maxdepth 4 | while read -r f; do echo "::notice::$f"; done
+          grep -E "ARCHIVE|warning: .*sign|SKIP_INSTALL" "$RUNNER_TEMP/archive.log" | head -n 10 | while read -r f; do echo "::notice::$f"; done
 
       - name: Upload to App Store Connect
         env:
