@@ -19,10 +19,10 @@ targets:
     type: application
     platform: iOS
     sources:
-      - path: DuoBreakout.swiftpm
-        excludes:
-          - Package.swift
-          - .swiftpm
+      # Point at the folders inside, not the .swiftpm folder itself:
+      # Xcode would copy a ".swiftpm" folder in as a file instead of compiling it.
+      - DuoBreakout.swiftpm/App
+      - DuoBreakout.swiftpm/Game
       - AppAssets/Assets.xcassets
     settings:
       base:
