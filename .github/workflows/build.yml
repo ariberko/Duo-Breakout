@@ -1,8 +1,8 @@
 name: Build
 
+# Runs only when started by hand from the Actions tab, to save Mac minutes.
+# The TestFlight upload already checks that the app builds.
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
