@@ -87,7 +87,8 @@ jobs:
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=HKA3SA3729 \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
-            | tail -n 100
+            > "$RUNNER_TEMP/archive.log" 2>&1 || { ./scripts/report-errors.sh "$RUNNER_TEMP/archive.log"; exit 1; }
+          tail -n 100 "$RUNNER_TEMP/archive.log"
 
       - name: Upload to App Store Connect
         env:
@@ -121,7 +122,8 @@ jobs:
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey.p8" \
             -authenticationKeyID "$(printf '%s' "$ASC_KEY_ID" | tr -d '[:space:]')" \
             -authenticationKeyIssuerID "$(printf '%s' "$ASC_ISSUER_ID" | tr -d '[:space:]')" \
-            | tail -n 100
+            > "$RUNNER_TEMP/export.log" 2>&1 || { ./scripts/report-errors.sh "$RUNNER_TEMP/export.log"; exit 1; }
+          tail -n 100 "$RUNNER_TEMP/export.log"
 
       - name: Remove API key
         if: always()
