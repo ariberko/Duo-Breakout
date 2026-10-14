@@ -5,6 +5,33 @@ enum GameMode { case solo, duo }
 
 enum GamePhase { case menu, playing, paused, levelCleared, over }
 
+/// Two player rules. Classic is free, the rest come with the Party Modes unlock.
+enum PartyRule: String, CaseIterable, Identifiable {
+    case classic, multiball, rush, chaos
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .classic: return "Classic"
+        case .multiball: return "Multiball"
+        case .rush: return "Rush"
+        case .chaos: return "Chaos"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .classic: return "One ball each."
+        case .multiball: return "Three balls each. Madness."
+        case .rush: return "Starts super fast."
+        case .chaos: return "Power-ups rain down."
+        }
+    }
+
+    var isFree: Bool { self == .classic }
+}
+
 enum PowerKind: CaseIterable {
     case wide, multi, slow, life
 
@@ -70,9 +97,11 @@ final class GameEngine: ObservableObject {
     @Published private(set) var phase: GamePhase = .menu
 
     private(set) var mode: GameMode = .solo
+    private(set) var rule: PartyRule = .classic
+    private(set) var levelPack = false
     private(set) var size: CGSize = .zero
     private(set) var insets = EdgeInsets()
-    private(set) var pattern = Levels.solo(level: 1)
+    private(set) var pattern = Levels.solo[0]
     private(set) var bricks: [Brick] = []
     private(set) var balls: [Ball] = []
     private(set) var drops: [Drop] = []
@@ -170,13 +199,23 @@ final class GameEngine: ObservableObject {
 
     // MARK: - Game flow
 
-    func start(_ newMode: GameMode) {
+    private var startSpeed: CGFloat {
+        mode == .duo && rule == .rush ? 0.85 : 0.6
+    }
+
+    private var dropChance: Double {
+        mode == .duo && rule == .chaos ? 0.4 : 0.14
+    }
+
+    func start(_ newMode: GameMode, rule newRule: PartyRule = .classic, levelPack hasLevelPack: Bool = false) {
         mode = newMode
+        rule = newMode == .duo ? newRule : .classic
+        levelPack = hasLevelPack
         level = 1
         lives = [3, 3]
         score = [0, 0]
         winner = nil
-        speed = 0.6
+        speed = startSpeed
         loadLevel()
         phase = .playing
         displayLink.start()
@@ -203,7 +242,7 @@ final class GameEngine: ObservableObject {
 
     private func loadLevel() {
         switch mode {
-        case .solo: pattern = Levels.solo(level: level)
+        case .solo: pattern = Levels.solo(level: level, levelPack: levelPack)
         case .duo: pattern = Levels.duo.randomElement() ?? Levels.duo[0]
         }
         bricks = pattern.bricks()
@@ -212,6 +251,15 @@ final class GameEngine: ObservableObject {
         slowTime = 0
         paddleX = [0.5, 0.5]
         balls = players.map { stuckBall(on: $0) }
+        if mode == .duo, rule == .multiball {
+            for player in players {
+                for _ in 0..<2 {
+                    var extra = stuckBall(on: player)
+                    extra.bonus = true
+                    balls.append(extra)
+                }
+            }
+        }
         lastTimestamp = nil
     }
 
@@ -385,7 +433,7 @@ final class GameEngine: ObservableObject {
             if bricks[i].hp <= 0 {
                 score[ball.owner] += 15
                 Haptics.pop()
-                if Double.random(in: 0..<1) < 0.14 {
+                if Double.random(in: 0..<1) < dropChance {
                     drops.append(Drop(pos: CGPoint(x: rect.midX, y: rect.midY), kind: .random(), toward: ball.owner))
                 }
             } else {
@@ -428,7 +476,7 @@ final class GameEngine: ObservableObject {
         switch mode {
         case .solo:
             level += 1
-            speed = min(0.6 + CGFloat(level - 1) * 0.05, 0.95)
+            speed = min(startSpeed + CGFloat(level - 1) * 0.05, 0.95)
             phase = .levelCleared
             Haptics.win()
             Task { @MainActor in
