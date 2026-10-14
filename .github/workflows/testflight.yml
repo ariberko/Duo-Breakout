@@ -68,6 +68,9 @@ jobs:
           brew install xcodegen
           xcodegen generate
 
+      # The archive is left unsigned. The export step signs it once with Apple's
+      # cloud-managed distribution certificate, so no new development
+      # certificate is made on every run (Apple allows only a few).
       - name: Archive
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -84,7 +87,7 @@ jobs:
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey.p8" \
             -authenticationKeyID "$(printf '%s' "$ASC_KEY_ID" | tr -d '[:space:]')" \
             -authenticationKeyIssuerID "$(printf '%s' "$ASC_ISSUER_ID" | tr -d '[:space:]')" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
             DEVELOPMENT_TEAM=HKA3SA3729 \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             > "$RUNNER_TEMP/archive.log" 2>&1 || { ./scripts/report-errors.sh "$RUNNER_TEMP/archive.log"; exit 1; }
